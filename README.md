@@ -62,7 +62,10 @@ jail にアプリを入れる作業を `#lang makejail` のトップレベル構
 | `(pkg …)` `(sysrc k v)` `(service name [start])` | アプリ投入 |
 | `(copy src dst)` | ホストファイルを jail へ（build 時に中身をバンドル） |
 | `(volume host jail-path)` / `(mount … #:readonly? #t)` | 永続・nullfs |
-| `(cmd …)` `(workdir …)` | 任意コマンド / 作業ディレクトリ |
+| `(pw-group)` `(pw-user)` `(smb-password)` | OS/Samba ユーザー（agent 可） |
+| `(template-subst path old new)` | 設定プレースホルダ置換 |
+| `(cmd …)` | **人間のみ** `--allow-cmd`（agent 禁止） |
+| `(workdir …)` | 作業ディレクトリ |
 
 ### 段階（phase）
 

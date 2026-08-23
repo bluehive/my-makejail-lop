@@ -17,6 +17,7 @@
  thin zfs snap host
  arg from option pkg copy sysrc service cmd human-cmd workdir volume mount
  name wiki-site
+ pw-group pw-user smb-password template-subst
  (struct-out mj-plan)
  (struct-out mj-arg)
  (struct-out mj-from)
@@ -96,6 +97,24 @@
 ;; Explicit human-only alias
 (define (human-cmd c . args)
   (mj-step 'human-cmd (cons (~a c) (map ~a args))))
+
+(define (pw-group name #:gid gid)
+  (mj-step 'pw-group (list (~a name) gid)))
+
+(define (pw-user name
+                 #:uid uid
+                 #:group grp
+                 #:home [home "/var/empty"]
+                 #:shell [shell "/usr/sbin/nologin"]
+                 #:create-home? [mh #t])
+  (mj-step 'pw-user (list (~a name) uid (~a grp) (~a home) (~a shell) mh)))
+
+;; password from arg binding / {{name}} substitution — never hardcode in agent templates
+(define (smb-password user pass-or-template)
+  (mj-step 'smb-password (list (~a user) (~a pass-or-template))))
+
+(define (template-subst path old new)
+  (mj-step 'template-subst (list (~a path) (~a old) (~a new))))
 
 (define (workdir path) (mj-step 'workdir (list (~a path))))
 (define (volume h j) (mj-step 'volume (list (~a h) (~a j))))
@@ -187,7 +206,7 @@
   (define steps (mj-plan-steps p))
   (when (and (eq? mode 'agent) (plan-has-cmd? p) (not allow-cmd?))
     (error 'makejail
-           "agent mode forbids (cmd)/(human-cmd)/(exec) — use wiki-site / pkg / volume / sysrc / service only"))
+           "agent mode forbids (cmd)/(human-cmd)/(exec) — use wiki-site / pkg / volume / sysrc / service / pw-* / smb-password / template-subst only"))
   (when (and (eq? mode 'agent) (network-is-host? opts) (not allow-host?))
     (error 'makejail
            "agent mode forbids (option network host) for mass production — use thin-vnet (Issue #3) or human --allow-host-net"))
@@ -252,6 +271,11 @@
          [(mj-step 'service (list svc act)) (push! 'service name svc act)]
          [(mj-step 'cmd (list* c as)) (push! 'jexec-cmd name c as)]
          [(mj-step 'human-cmd (list* c as)) (push! 'jexec-cmd name c as)]
+         [(mj-step 'pw-group (list g gid)) (push! 'pw-group name g gid)]
+         [(mj-step 'pw-user (list u uid grp home shell mh))
+          (push! 'pw-user name u uid grp (subst-str home) shell mh)]
+         [(mj-step 'smb-password (list u pw))
+          (push! 'smb-password name u (subst-str pw))]
          [(mj-step 'volume (list h j)) (push! 'volume name (subst-str h) (subst-str j))]
          [(mj-step 'mount (list h j ro?)) (push! 'mount name h j ro?)]
          [(mj-step 'wiki-harden (list root)) (push! 'wiki-harden name root)]
