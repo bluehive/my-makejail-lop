@@ -1,0 +1,7 @@
+compiled/
+*.zo
+*~
+\#*\#
+.#*
+.DS_Store
+*.swp
