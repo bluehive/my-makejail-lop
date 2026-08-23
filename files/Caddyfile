@@ -1,0 +1,5 @@
+{{HOSTNAME}} {
+    root * /usr/local/share/dokuwiki
+    php_fastcgi localhost:9000
+    file_server
+}

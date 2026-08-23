@@ -272,3 +272,7 @@ makejail の `(cmd ...)` で bsd-apps スクリプトを呼ぶ例:
 - [Overview](Overview) — makejail と LOP  
 - [使い方](使い方) — CLI と構文表  
 - [Issue #3 thin-vnet](https://github.com/bluehive/my-makejail-lop/issues/3) — 同一 jail 内 Caddy+DokuWiki 量産のネット仕様  
+
+## 関連
+
+- [examples-freebsd15](examples-freebsd15)
