@@ -1,118 +1,137 @@
-# makejail — FreeBSD Jail Automation DSL in Racket
-
-Racket の言語指向プログラミング（**LOP**）に基づく、FreeBSD Jail 構築・自動化のためのドメイン固有言語（DSL）です。
+# makejail — FreeBSD Jail Automation DSL (Racket LOP)
 
 | 項目 | 内容 |
 |------|------|
-| リポジトリ | `bluehive/my-makejail-lop` |
-| コレクション名 | `makejail`（`#lang makejail` / `raco makejail`） |
-| ライセンス | **BSD-2-Clause** |
-| 設計・仕様支援 | Gemini |
-| 公開 | Public |
+| リポジトリ | https://github.com/bluehive/my-makejail-lop |
+| バージョン | **0.2.0** (Grok-order MVP prototype) |
+| コレクション | `makejail`（`#lang makejail`） |
+| ライセンス | BSD-2-Clause |
+| 設計レビュー | [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1) |
+| **Wiki** | [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) · [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) · [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) · [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
+| Wiki ソース | リポジトリ内 [`docs/wiki/`](docs/wiki/)（記述: DeepSeek、ライセンス BSD-2-Clause） |
 
-> **注意**: ランタイム（`runtime/executor.rkt`）は FreeBSD 上の root 相当権限と ZFS / jail / VNET を前提とします。Linux ホストでは DSL の構文テストのみ可能です。
+> **0.2 方針 (Issue #1 pivot)**  
+> Gemini 0.1 の「VNET 先出し一発パイプライン」をやめ、Grok 仕様の **MVP 順**（計画=dry-run → 寿命 phase → アプリ投入 → volume → 単純 net）に寄せたプロトタイプです。  
+> Beautiful Racket 的には「ドメインを安く言語化」する実験台。本番 AppJail 互換ではありません。
 
-## 目的
+### ドキュメント（Wiki）
 
-FreeBSD Jail に対するアプリケーションの **自動インストール・設定** を、宣言的 S 式で記述し、ローカルまたは SSH 経由で自動実行する。
+LOP の読み方と CLI は Wiki に分けてあります（本文は DeepSeek 記述）。
 
-## アーキテクチャ
+| ページ | 内容 |
+|--------|------|
+| [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) | `#lang makejail` と LOP（構文→AST→効果→実行） |
+| [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) | 構文表・`raco makejail`・MVP 注意 |
+| [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) | bsd-apps 比較・ハイブリッド |
+| [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) | 同一 Jail Caddy+DokuWiki / Samba・FreeBSD 15 注意 |
+| [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) | Flatt/ACM Queue「Racket における言語作成」整理 |
+| リポジトリミラー | [`docs/wiki/`](docs/wiki/) |
 
-| 層 | 内容 |
-|----|------|
-| フロントエンド (DSL) | S 式の `#lang makejail`。`syntax-parse` で静的に形を検証し、Prefab AST（`jail-plan` 等）を生成 |
-| トランスポート | SSH 経由で AST を S 式としてリモートへ送信。設定テキストは `file:copy` 時にインライン化してバンドル |
-| バックエンド (Runtime) | FreeBSD 上で `zfs clone`、動的 epair/bridge による VNET Jail、nullfs マウント、`jexec` を順に実行 |
-| エラー制御 | コマンド失敗時は **ロールバックせず即時中断**。Jail は稼働状態で保持し、`/var/log/makejail-error.log` に失敗を記録 |
+Wiki 未作成の場合は GitHub 上で一度 Wiki を有効化／最初のページ作成後、`scripts/publish-wiki.sh` で `docs/wiki` を同期できます。
 
+## 何が言語か
+
+jail にアプリを入れる作業を `#lang makejail` のトップレベル構文にします（require して手続きを並べるライブラリ API が表向きではありません）。
+
+```racket
+#lang makejail
+
+(name "web-nginx")
+(from zfs "zroot/jails/base@clean")
+(option dataset "zroot/jails/web-nginx")
+(option network host)
+
+(pkg "nginx")
+(sysrc "nginx_enable" "YES")
+(copy "templates/nginx.conf" "/usr/local/etc/nginx/nginx.conf")
+(service nginx start)
 ```
-[ #lang makejail 定義 ]
-        │  AST (prefab)
-        ▼
-[ raco makejail build ]
-        │  ローカル or SSH + write
-        ▼
-[ runtime/executor ] ── zfs / ifconfig / jail / jexec
-```
 
-## 特徴
+### 構文（MVP）
 
-- 宣言的 S 式構文: `#lang makejail`
-- ZFS 高速クローン: ベーススナップショットから展開
-- 独立ネットワーク (VNET): epair / bridge の動的生成
-- nullfs マウント（読み取り専用可）
-- 失敗時も Jail を残し、ログで原因調査可能
-- SSH 経由のリモート構築（AST シリアライズ）
-
-## 構文一覧
-
-| 構文 | 説明 |
+| 構文 | 意味 |
 |------|------|
-| `(jail-spec name ...)` | Jail 定義のルートフォーム |
-| `#:from "dataset@snap"` | クローン元 ZFS スナップショット |
-| `#:dataset "dataset"` | 作成する ZFS データセット |
-| `#:network (vnet #:bridge ... #:ip4 ... #:gw ...)` | VNET 構成 |
-| `#:mounts ((mount host dst [#:readonly? #t]) ...)` | nullfs マウント |
-| `#:expose (80 443)` | 公開ポート（文書・表示用） |
-| `(pkg:install ...)` | `pkg install -y` |
-| `(sysrc:set key val)` | `sysrc` |
-| `(service:start name)` | `service <name> start` |
-| `(file:copy src dst)` | ホスト上テキストを Jail 内へ配置 |
-| `(exec:run cmd args...)` | 任意コマンド |
+| `(name "…")` | jail 名 |
+| `(from thin freebsd-14.3)` | thin + release 名（作成は TODO） |
+| `(from zfs "pool/ds@snap")` | ZFS clone 元 |
+| `(option dataset "…")` | clone 先 dataset |
+| `(option network host)` | ホスト共有 net（既定寄り） |
+| `(option nat)` / `(option expose 80)` / `(option virtualnet …)` | **受理するが executor では TODO/凍結** |
+| `(arg password)` / `(arg x "default")` | 引数宣言（効果列に出る・未バインド検査は今後） |
+| `(pkg …)` `(sysrc k v)` `(service name [start])` | アプリ投入 |
+| `(copy src dst)` | ホストファイルを jail へ（build 時に中身をバンドル） |
+| `(volume host jail-path)` / `(mount … #:readonly? #t)` | 永続・nullfs |
+| `(cmd …)` `(workdir …)` | 任意コマンド / 作業ディレクトリ |
+
+### 段階（phase）
+
+| phase | 内容 |
+|-------|------|
+| `build` | 作成 + パッケージ等（既定） |
+| `start` / `stop` | 寿命操作 |
+| `destroy` | 停止 + zfs destroy 等 |
+
+## CLI
+
+```bash
+raco pkg install --link /path/to/my-makejail-lop
+
+# 効果列のみ（どの OS でも安全・既定）
+raco makejail plan examples/nginx.rkt
+raco makejail build examples/nginx.rkt          # dry-run 既定
+raco makejail build examples/nginx.rkt --dry-run
+
+# FreeBSD で実実行
+raco makejail build examples/nginx.rkt --apply
+raco makejail destroy examples/nginx.rkt --apply
+
+# SSH（リモートに makejail パッケージが必要）
+raco makejail build examples/nginx.rkt --apply root@freebsd.local
+```
 
 ## ディレクトリ
 
 ```
-my-makejail-lop/
-├── LICENSE                 # BSD-2-Clause
-├── README.md
-├── info.rkt
-├── main.rkt                # DSL / AST
-├── raco.rkt                # raco makejail CLI
-├── lang/reader.rkt         # #lang makejail
-├── runtime/executor.rkt    # FreeBSD 実行系
-├── test/dsl-test.rkt
-└── examples/
-    ├── web.rkt
-    └── templates/nginx.conf
+main.rkt                 #lang / AST / plan->effects
+lang/reader.rkt
+raco.rkt                 # plan|build|start|stop|destroy
+runtime/executor.rkt     # dry-run + FreeBSD apply（VNET 凍結）
+examples/nginx.rkt
+examples/nginx-thin.rkt
+examples/templates/nginx.conf
+test/dsl-test.rkt
 ```
 
-## インストールと利用
+## 0.1 (Gemini) から変わったこと
+
+| 削除・凍結 | 採用・追加 |
+|------------|------------|
+| 必須 VNET epair パイプライン | `plan->effects` + **dry-run 既定** |
+| jail-spec 巨大マクロのみ | Grok 風トップレベル `(from thin …)` 等 |
+| expose が「あるフリ」 | net-* は TODO と明示 |
+| | phase: build/start/stop/destroy |
+| | zfs from を当面の実用経路に |
+
+流用: prefab AST、raco エントリ、SSH で plan を `write` する発想、BSD-2-Clause、copy インライン化。
+
+## テスト
 
 ```bash
-# 1. パッケージのリンクインストール
-cd /path/to/my-makejail-lop
-raco pkg install --link .
-
-# 2. DSL テスト（AST 生成）
-raco test -l makejail/test/dsl-test
-# または
 raco test test/dsl-test.rkt
-
-# 3. ビルド（ローカル FreeBSD / または SSH 先）
-raco makejail build examples/web.rkt
-raco makejail build examples/web.rkt root@freebsd-server.local
-
-# 4. 破棄
-raco makejail destroy examples/web.rkt
-raco makejail destroy examples/web.rkt root@freebsd-server.local
 ```
 
-リモート側には `makejail` パッケージ（少なくとも `makejail/runtime/executor`）と Racket が必要です。
+## 未実装（意図的）
 
-## 仕様メモ（0.1.0）
-
-- 失敗時 **ロールバックなし**（意図的）。壊れた中間状態の jail を残してデバッグする。
-- `expose` は現状ドキュメント／表示用。pf/ipfw ルール自動生成は未実装。
-- `zfs:clone` フォームは予約・スタブ。実際のクローンは executor が `#:from` / `#:dataset` から行う。
-- `when:step` / build-arg は STUB（将来拡張）。
-
-## 関連プロジェクト
-
-- FreeBSD Handbook JA: https://github.com/bluehive/my-freebsd-handbk-jp  
-  （Jail / Service Jails / appjail-ephemeral メモ）
+- thin jail の release 取得と nullfs base の完全自動化  
+- pf NAT / port expose の実体  
+- VNET（Issue #1 で凍結）  
+- `#lang jail/stack` / template  
+- ARG のコンパイル時必須チェック強化  
+- INCLUDE / STAGE 分割の本格化  
 
 ## クレジット
 
-- 設計・仕様の原案支援: **Gemini**
-- リポジトリ整備・公開: bluehive (Hiroki Kato) / Hermes
+- 0.1 スケッチ: Gemini  
+- MVP 方向・工程観: Grok  
+- LOP 物差し: [Beautiful Racket](https://beautifulracket.com/introduction.html)  
+- pivot レビュー: [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1)  

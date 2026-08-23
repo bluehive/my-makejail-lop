@@ -2,58 +2,95 @@
 
 (require racket/cmdline
          racket/file
+         racket/path
+         racket/match
          racket/system
          racket/port
-         racket/match
          "main.rkt"
          "runtime/executor.rkt")
 
-(define (bundle-plan-files plan)
-  (define bundled-steps
-    (for/list ([step (jail-plan-steps plan)])
-      (if (step-copy? step)
-          (step-copy (file->string (step-copy-src step))
-                     (step-copy-dst step))
-          step)))
-  (struct-copy jail-plan plan [steps bundled-steps]))
+(define dry-run? #t)
+(define phase 'build)
+
+(define (bundle-copies plan root)
+  (define new-steps
+    (for/list ([s (mj-plan-steps plan)])
+      (match s
+        [(mj-step 'copy (list src dst))
+         (define p (build-path root src))
+         (define content
+           (cond
+             [(file-exists? p) (file->string p)]
+             [(file-exists? src) (file->string src)]
+             [else (error 'makejail "copy source not found: ~a (root=~a)" src root)]))
+         (mj-step 'copy (list content dst))]
+        [else s])))
+  (struct-copy mj-plan plan [steps new-steps]))
+
+(define (load-plan path)
+  (define complete (path->complete-path path))
+  (define root (path-only complete))
+  (define raw (dynamic-require complete 'current-plan))
+  (values (bundle-copies raw (or root (current-directory)))
+          (or root (current-directory))))
+
+(define (run-local plan root ph dry?)
+  (execute-plan! plan #:phase ph #:dry-run? dry? #:bundle-root root)
+  (void))
+
+(define (run-ssh plan host ph dry?)
+  (when dry?
+    (printf "SSH dry-run: showing local effect list (remote not contacted).\n")
+    (run-local plan (current-directory) ph #t)
+    (printf "Remote would be: ~a\n" host)
+    (exit 0))
+  (printf "SSH execute -> ~a phase=~a\n" host ph)
+  (define remote
+    (format
+     "ssh ~a 'racket -e \"(require makejail/runtime/executor makejail) (execute-plan! (read) #:phase (quote ~a) #:dry-run? #f)\"'"
+     host ph))
+  (match-define (list in out _pid err ctrl) (process remote))
+  (write plan out)
+  (close-output-port out)
+  (copy-port in (current-output-port))
+  (copy-port err (current-error-port))
+  (exit (or (ctrl 'exit-code) 0)))
 
 (define (main)
+  (define sub #f)
+  (define spec #f)
+  (define host #f)
   (command-line
    #:program "raco makejail"
-   #:args (subcommand spec-path . rest-args)
-   (define target-host (if (pair? rest-args) (car rest-args) #f))
-   (define raw-plan
-     (dynamic-require (path->complete-path spec-path) 'current-plan))
-   (define plan (bundle-plan-files raw-plan))
+   #:once-each
+   [("--dry-run") "Print effects only (default)"
+                  (set! dry-run? #t)]
+   [("--apply") "Really execute on FreeBSD host"
+                (set! dry-run? #f)]
+   [("--phase") ph "build|start|stop|destroy (default build)"
+                (set! phase (string->symbol ph))]
+   #:args (subcommand spec-path . rest)
+   (set! sub subcommand)
+   (set! spec spec-path)
+   (when (pair? rest) (set! host (car rest))))
 
-   (case subcommand
-     [("build")
-      (dispatch-action plan target-host 'execute-jail-plan)]
-     [("destroy")
-      (dispatch-action plan target-host 'destroy-jail-plan)]
-     [else
-      (eprintf "不明なサブコマンド: ~a (build または destroy)\n" subcommand)
-      (exit 1)])))
-
-(define (dispatch-action plan target-host action-fn-sym)
-  (if target-host
-      (begin
-        (printf "SSH 経由で ~a 実行中 -> ~a\n" action-fn-sym target-host)
-        (define remote-cmd
-          (format
-           "ssh ~a 'racket -e \"(require makejail/runtime/executor) (~a (read))\"'"
-           target-host
-           action-fn-sym))
-        (match-define (list p-in p-out _pid p-err p-ctrl)
-          (process remote-cmd))
-        (write plan p-out)
-        (close-output-port p-out)
-        (copy-port p-in (current-output-port))
-        (copy-port p-err (current-error-port))
-        (p-ctrl 'wait))
-      (case action-fn-sym
-        [(execute-jail-plan) (execute-jail-plan plan)]
-        [(destroy-jail-plan) (destroy-jail-plan plan)])))
+  (define-values (plan root) (load-plan spec))
+  (case sub
+    [("plan" "build")
+     (when (equal? sub "plan") (set! dry-run? #t))
+     (if host
+         (run-ssh plan host phase dry-run?)
+         (run-local plan root phase dry-run?))]
+    [("start")
+     (if host (run-ssh plan host 'start dry-run?) (run-local plan root 'start dry-run?))]
+    [("stop")
+     (if host (run-ssh plan host 'stop dry-run?) (run-local plan root 'stop dry-run?))]
+    [("destroy")
+     (if host (run-ssh plan host 'destroy dry-run?) (run-local plan root 'destroy dry-run?))]
+    [else
+     (eprintf "Usage: raco makejail <plan|build|start|stop|destroy> FILE.rkt [user@host]\n")
+     (eprintf "  --dry-run (default) | --apply   --phase build|start|stop|destroy\n")
+     (exit 1)]))
 
 (module+ main
   (main))
