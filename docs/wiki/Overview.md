@@ -136,3 +136,7 @@ S 式ベースの言語として `makejail` を登録しています。これに
 - [使い方](使い方) — 構文一覧・CLI・MVP の注意点  
 - [Issue #1 設計レビュー](https://github.com/bluehive/my-makejail-lop/issues/1)  
 - [Issue #3 thin-vnet 仕様](https://github.com/bluehive/my-makejail-lop/issues/3)  
+
+## 関連
+
+- [bsd-appsと比較](bsd-appsと比較)
