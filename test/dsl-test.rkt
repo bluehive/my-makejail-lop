@@ -4,46 +4,59 @@
          rackunit/text-ui
          "../main.rkt")
 
-(define dsl-tests
+(define tests
   (test-suite
-   "makejail DSL AST Generation Tests"
+   "makejail Grok MVP"
 
-   (test-case "Basic jail-spec macro expansion"
-     (define plan
-       (jail-spec "test-proxy"
-         #:from "zroot/base@14.1"
-         #:dataset "zroot/jails/test-proxy"
-         #:network (vnet #:bridge "bridge0"
-                         #:ip4 "192.168.1.10/24"
-                         #:gw "192.168.1.1")
-         #:mounts ((mount "/host/shared" "/jail/mnt" #:readonly? #t))
-         #:expose (80 443)
+   (test-case "from thin + steps assemble"
+     (define p
+       (assemble-plan
+        (list (name "t1")
+              (from thin freebsd-14.3)
+              (option network host)
+              (pkg "nginx" "curl")
+              (sysrc "nginx_enable" "YES")
+              (service nginx start))))
+     (check-equal? (mj-plan-name p) "t1")
+     (check-equal? (mj-from-kind (mj-plan-from p)) 'thin)
+     (check-equal? (mj-from-ref (mj-plan-from p)) "freebsd-14.3")
+     (check-equal? (length (mj-plan-steps p)) 3)
+     (define eff (plan->effects p #:phase 'build))
+     (check-true (pair? eff))
+     (check-true (for/or ([e eff]) (eq? (car e) 'create-thin-jail))))
 
-         (pkg:install "nginx" "curl")
-         (sysrc:set "nginx_enable" "YES")
-         (service:start "nginx")
-         (exec:run "echo" "hello")))
+   (test-case "duplicate from errors"
+     (check-exn
+      exn:fail?
+      (λ ()
+        (assemble-plan
+         (list (from thin a)
+               (from thin b))))))
 
-     (check-equal? (jail-plan-name plan) "test-proxy")
-     (check-equal? (jail-plan-from-snap plan) "zroot/base@14.1")
-     (check-equal? (jail-plan-dataset plan) "zroot/jails/test-proxy")
+   (test-case "missing from errors"
+     (check-exn
+      exn:fail?
+      (λ ()
+        (assemble-plan (list (name "x") (pkg "y"))))))
 
-     (define net (jail-plan-vnet-cfg plan))
-     (check-equal? (vnet-config-bridge net) "bridge0")
-     (check-equal? (vnet-config-ip4 net) "192.168.1.10/24")
-     (check-equal? (vnet-config-gw net) "192.168.1.1")
+   (test-case "zfs effects include clone"
+     (define p
+       (assemble-plan
+        (list (name "z1")
+              (from zfs "zroot/base@c")
+              (option dataset "zroot/jails/z1")
+              (pkg "nginx"))))
+     (define eff (plan->effects p))
+     (check-true (for/or ([e eff]) (eq? (car e) 'zfs-clone))))
 
-     (check-equal? (length (jail-plan-mounts plan)) 1)
-     (check-equal? (mount-spec-ro? (car (jail-plan-mounts plan))) #t)
-     (check-equal? (jail-plan-exposes plan) '(80 443))
-
-     (define steps (jail-plan-steps plan))
-     (check-equal? (length steps) 4)
-     (check-true (step-pkg? (list-ref steps 0)))
-     (check-equal? (step-pkg-pkgs (list-ref steps 0)) '("nginx" "curl"))
-     (check-true (step-sysrc? (list-ref steps 1)))
-     (check-true (step-service? (list-ref steps 2)))
-     (check-true (step-exec? (list-ref steps 3))))))
+   (test-case "destroy phase"
+     (define p
+       (assemble-plan
+        (list (name "z1")
+              (from zfs "zroot/base@c")
+              (option dataset "zroot/jails/z1"))))
+     (define eff (plan->effects p #:phase 'destroy))
+     (check-true (for/or ([e eff]) (eq? (car e) 'zfs-destroy))))))
 
 (module+ test
-  (run-tests dsl-tests))
+  (run-tests tests))
