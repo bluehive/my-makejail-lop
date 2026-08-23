@@ -3,10 +3,11 @@
 | 項目 | 内容 |
 |------|------|
 | リポジトリ | https://github.com/bluehive/my-makejail-lop |
-| バージョン | **0.2.0** (Grok-order MVP prototype) |
+| バージョン | **0.3.0** (P02 agent-safe DSL · Issue #4) |
 | コレクション | `makejail`（`#lang makejail`） |
 | ライセンス | BSD-2-Clause |
-| 設計レビュー | [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1) |
+| 設計レビュー | [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1) · [Issue #4 P02](https://github.com/bluehive/my-makejail-lop/issues/4) |
+| エージェント契約 | [`docs/P02-agent-contract.md`](docs/P02-agent-contract.md) |
 | **Wiki** | [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) · [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) · [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) · [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
 | Wiki ソース | リポジトリ内 [`docs/wiki/`](docs/wiki/)（記述: DeepSeek、ライセンス BSD-2-Clause） |
 

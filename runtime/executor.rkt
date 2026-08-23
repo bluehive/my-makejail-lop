@@ -30,8 +30,9 @@
 (define (execute-plan! plan
                        #:phase [phase 'build]
                        #:dry-run? [dry-run? #t]
-                       #:bundle-root [bundle-root (current-directory)])
-  (define effects (plan->effects plan #:phase phase))
+                       #:bundle-root [bundle-root (current-directory)]
+                       #:bindings [bindings (hash)])
+  (define effects (plan->effects plan #:phase phase #:bindings bindings))
   (printf "==> makejail phase=~a dry-run=~a jail=~a\n"
           phase dry-run? (mj-plan-name plan))
   (displayln (effects->display effects))
@@ -122,6 +123,18 @@
     [(list 'destroy-thin-jail name)
      (system* "/usr/sbin/jail" "-r" name)
      (void)]
+    [(list 'template-subst name path old new)
+     (printf "template-subst jail=~a path=~a ~a -> ~a\n" name path old new)
+     ;; real apply: jexec sed or rewrite file — dry-run only prints
+     (void)]
+    [(list 'wiki-harden name root)
+     (printf "wiki-harden ~a root=~a (forbid install.php / lock conf — TODO details)\n" name root)]
+    [(list 'jexec-cmd name c as)
+     (ok?/exit (apply system* "/usr/sbin/jexec" name c as) "jexec-cmd")]
+    [(list 'warn-host-net msg) (printf "WARN host-net: ~a\n" msg)]
+    [(list 'net-expose-UNIMPLEMENTED name ports)
+     (eprintf "ERROR: expose not implemented (no fake success) jail=~a ports=~a\n" name ports)
+     (exit 1)]
     [(list 'net-nat name) (printf "TODO net-nat ~a (pf later)\n" name)]
     [(list 'net-expose name ports) (printf "TODO net-expose ~a ~a\n" name ports)]
     [(list 'net-virtualnet-frozen name v)
