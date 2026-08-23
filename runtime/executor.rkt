@@ -129,8 +129,28 @@
      (void)]
     [(list 'wiki-harden name root)
      (printf "wiki-harden ~a root=~a (forbid install.php / lock conf — TODO details)\n" name root)]
+    [(list 'pw-group name g gid)
+     (ok?/exit
+      (system* "/usr/sbin/jexec" name "/usr/sbin/pw" "groupadd" "-n" g "-g" (~a gid))
+      "pw-group")]
+    [(list 'pw-user name u uid grp home shell mh)
+     (define base
+       (list "/usr/sbin/jexec" name "/usr/sbin/pw" "useradd"
+             "-n" u "-u" (~a uid) "-g" grp "-d" home "-s" shell))
+     (ok?/exit (apply system* (if mh (append base (list "-m")) base)) "pw-user")]
+    [(list 'smb-password name u pw)
+     (define tmp (format "/tmp/mj-smb-~a" u))
+     (define body (string-append u "\n" pw "\n" pw "\n"))
+     (define script
+       (string-append "cat > " tmp " << 'MJEOF'\n" body "MJEOF\n"
+                      "/usr/local/bin/smbpasswd -s -a " u " < " tmp "\n"
+                      "rm -f " tmp "\n"))
+     (ok?/exit
+      (system* "/usr/sbin/jexec" name "/bin/sh" "-c" script)
+      "smb-password")]
     [(list 'jexec-cmd name c as)
      (ok?/exit (apply system* "/usr/sbin/jexec" name c as) "jexec-cmd")]
+
     [(list 'warn-host-net msg) (printf "WARN host-net: ~a\n" msg)]
     [(list 'net-expose-UNIMPLEMENTED name ports)
      (eprintf "ERROR: expose not implemented (no fake success) jail=~a ports=~a\n" name ports)
