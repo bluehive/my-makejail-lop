@@ -144,3 +144,5 @@ S 式ベースの言語として `makejail` を登録しています。これに
 ## 関連
 
 - [examples-freebsd15](examples-freebsd15)
+
+- [creating-languages-in-racket](creating-languages-in-racket) — Flatt / ACM Queue
