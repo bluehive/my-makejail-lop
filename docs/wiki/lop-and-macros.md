@@ -188,3 +188,5 @@ HtDP は設計の考え方の本で、上の表そのものの仕様書ではあ
 - [creating-languages-in-racket](creating-languages-in-racket) — Flatt / ACM Queue  
 - [P02 エージェント契約](https://github.com/bluehive/my-makejail-lop/blob/main/docs/P02-agent-contract.md)  
 - [Beautiful Racket: Introduction](https://beautifulracket.com/introduction.html)  
+
+- [stack-calc](stack-calc) — #lang スタック計算機
