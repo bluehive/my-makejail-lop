@@ -1,7 +1,23 @@
 #lang racket/base
 
-;; makejail 0.3 — Issue #4 / P02 agent-safe DSL
-;; Flat syntax only (no jail-spec). Agent mode forbids cmd & host net mass-prod.
+;; =============================================================================
+;; main.rkt — `#lang makejail` の言語本体（語彙 → AST → 効果列）
+;;
+;; 【パイプライン全体】（マクロは AST まで。副作用は executor）
+;;   ソース (name)(from)(pkg)…
+;;     → マクロ / トップレベル束縛（形の検査）
+;;     → mj-plan（prefab AST）
+;;     → plan->effects（効果のリスト）
+;;     → runtime/executor.rkt（dry-run 表示 or FreeBSD 上で実行）
+;;
+;; 【設計の要点】
+;;   - 平坦構文のみ（旧 jail-spec は受理しない）… Issue #1 / #4
+;;   - agent モード既定: (cmd) と network host を禁止（量産の衝突・脱出路）
+;;   - ロールバック無しは「実行方針」であり、このファイルのマクロの意味ではない
+;;
+;; 【参考 Wiki】
+;;   lop-and-macros / creating-languages-in-racket / P02-agent-contract
+;; =============================================================================
 
 (require (for-syntax racket/base syntax/parse)
          racket/list
@@ -10,14 +26,23 @@
          racket/string
          racket/base)
 
+;; -----------------------------------------------------------------------------
+;; provide = この言語の「受理集合」の境界
+;;   ここに無い識別子は #lang makejail の利用者ファイルから見えない
+;;   （define / system などを export しない → エージェントが書けない）
+;; -----------------------------------------------------------------------------
 (provide
+ ;; #%module-begin を差し替え = 「ファイル全体が1つの jail 計画」
  (rename-out [mj-module-begin #%module-begin]
              [mj-top-interaction #%top-interaction])
  #%app #%datum #%top
+ ;; (from thin …) (option network host) などで使える記号
  thin zfs snap host
+ ;; 表面語彙
  arg from option pkg copy sysrc service cmd human-cmd workdir volume mount
  name wiki-site
  pw-group pw-user smb-password template-subst
+ ;; AST と API（raco / テスト / executor が require）
  (struct-out mj-plan)
  (struct-out mj-arg)
  (struct-out mj-from)
@@ -32,25 +57,42 @@
  resolve-args
  agent-plan-ok?)
 
+;; -----------------------------------------------------------------------------
+;; AST（#:prefab … モジュール境界を越えて read/write・比較しやすい構造体）
+;;   マクロ／語彙の最終成果物。実行コマンドそのものではない。
+;; -----------------------------------------------------------------------------
 (struct mj-arg (name has-default? default-val) #:prefab)
-(struct mj-from (kind ref) #:prefab)
-(struct mj-option (key val) #:prefab)
-(struct mj-step (op args) #:prefab)
-(struct mj-plan (name args from options steps) #:prefab)
+(struct mj-from (kind ref) #:prefab)       ; kind: 'thin | 'zfs-snap
+(struct mj-option (key val) #:prefab)      ; name, dataset, network など
+(struct mj-step (op args) #:prefab)        ; pkg / copy / wiki-site など1ステップ
+(struct mj-plan (name args from options steps) #:prefab) ; ファイル全体の計画
 
-(define makejail-mode (make-parameter 'agent)) ; 'agent | 'human
+;; 実行モード: 'agent（既定・厳しい）| 'human（--allow-cmd 等が要る）
+(define makejail-mode (make-parameter 'agent))
+;; --arg key=value や環境変数で埋める束縛
 (define makejail-arg-bindings (make-parameter (hash)))
 
+;; (from thin freebsd-14.3) の thin を識別子として書けるようにする値
 (define thin 'thin)
 (define zfs 'zfs)
 (define snap 'zfs-snap)
 (define host 'host)
 
+;; =============================================================================
+;; マクロ層（展開時 = コンパイル／モジュール読込時に形を触る）
+;;   define-syntax + syntax-parse … 「構文オブジェクト → 構文オブジェクト」
+;;   ここで落ちるエラーは pkg 失敗ではなく「言語が受理しない」
+;; =============================================================================
+
+;; (arg hostname)           … 必須（後で --arg か env が無いと resolve-args がエラー）
+;; (arg share-host "/path") … デフォルト付き
 (define-syntax (arg stx)
   (syntax-parse stx
     [(_ name:id) #'(mj-arg 'name #f #f)]
     [(_ name:id default-expr:expr) #'(mj-arg 'name #t default-expr)]))
 
+;; (from zfs "pool/ds@snap") / (from thin freebsd-14.3)
+;; kind:id と ref:str など、引数の「構文の種類」でパターンを分ける
 (define-syntax (from stx)
   (syntax-parse stx
     [(_ kind:id ref:id)
@@ -74,10 +116,17 @@
     [(_ key:id val:expr) #'(mj-option 'key val)]
     [(_ key:str val:expr) #'(mj-option (string->symbol key) val)]))
 
+;; (name "web") は内部的には option 'name として持つ
 (define-syntax (name stx)
   (syntax-parse stx
     [(_ n:str) #'(mj-option 'name n)]
     [(_ n:id) #'(mj-option 'name (symbol->string 'n))]))
+
+;; =============================================================================
+;; 実行時関数の語彙（呼ばれると mj-step を返す）
+;;   見た目は DSL だが、静的検査はマクロより弱い（plan-validate! で補う）
+;;   LOP 的に「閉じたい」ものほどマクロ or provide 外しへ寄せるのが本筋
+;; =============================================================================
 
 (define (pkg . pkgs) (mj-step 'pkg (map ~a (flatten pkgs))))
 (define (copy src dst) (mj-step 'copy (list (~a src) (~a dst))))
@@ -90,14 +139,14 @@
     [(_ svc:str) #'(mj-step 'service (list svc 'start))]
     [(_ svc:expr act:expr) #'(mj-step 'service (list (~a svc) act))]))
 
-;; Agent-forbidden escape hatch (Issue #4)
+;; --- 脱出路（Issue #4）: agent 既定では plan-validate! が拒否 ---
 (define (cmd c . args)
   (mj-step 'cmd (cons (~a c) (map ~a args))))
 
-;; Explicit human-only alias
 (define (human-cmd c . args)
   (mj-step 'human-cmd (cons (~a c) (map ~a args))))
 
+;; --- Samba 等: sh の pw/smbpasswd を語彙化（examples から cmd を消す） ---
 (define (pw-group name #:gid gid)
   (mj-step 'pw-group (list (~a name) gid)))
 
@@ -109,7 +158,7 @@
                  #:create-home? [mh #t])
   (mj-step 'pw-user (list (~a name) uid (~a grp) (~a home) (~a shell) mh)))
 
-;; password from arg binding / {{name}} substitution — never hardcode in agent templates
+;; パスワードはテンプレに直書きせず "{{samba-password}}" + --arg で注入
 (define (smb-password user pass-or-template)
   (mj-step 'smb-password (list (~a user) (~a pass-or-template))))
 
@@ -120,7 +169,8 @@
 (define (volume h j) (mj-step 'volume (list (~a h) (~a j))))
 (define (mount h j #:readonly? [ro? #f]) (mj-step 'mount (list (~a h) (~a j) ro?)))
 
-;; Domain vocabulary: DokuWiki + Caddy same jail (no cmd/sed)
+;; ドメイン語彙: 同一 jail 内 Caddy+DokuWiki（sed/cmd なし）
+;; 1 ステップに畳み、flatten-steps で pkg/copy/volume/… に展開する
 (define (wiki-site #:hostname hostname
                    #:data-host data-host
                    #:root [root "/usr/local/share/dokuwiki"]
@@ -140,6 +190,9 @@
                  (map ~a php-pkgs)
                  forbid)))
 
+;; -----------------------------------------------------------------------------
+;; 必須 arg の解決（--arg / デフォルト / MAKEJAIL_ARG_* 環境変数）
+;; -----------------------------------------------------------------------------
 (define (resolve-args plan [bindings (makejail-arg-bindings)])
   (define ht (make-hash))
   (when (hash? bindings)
@@ -168,6 +221,7 @@
   (for/or ([s (mj-plan-steps plan)])
     (and (mj-step? s) (memq (mj-step-op s) '(cmd human-cmd exec)))))
 
+;; wiki-site → 具体ステップ列（マクロではなく実行時展開でも「計画の一部」）
 (define (expand-wiki-site-step step)
   (match-define (mj-step 'wiki-site (list hn data root caddy-src php-src php-pkgs forbid)) step)
   (append
@@ -192,6 +246,10 @@
        [(mj-step 'wiki-site _) (expand-wiki-site-step s)]
        [else (list s)]))))
 
+;; -----------------------------------------------------------------------------
+;; 言語規則の実行時ゲート（agent/human）
+;;   理想は provide 分離や #lang makejail/agent。現状はここで受理を切る。
+;; -----------------------------------------------------------------------------
 (define (plan-validate! p
                         #:mode [mode (makejail-mode)]
                         #:bindings [bindings (makejail-arg-bindings)]
@@ -200,7 +258,7 @@
   (unless (mj-plan? p) (error 'makejail "not a plan"))
   (unless (mj-from? (mj-plan-from p))
     (error 'makejail "missing (from thin|zfs ...)"))
-  ;; required args
+  ;; 必須 arg
   (void (resolve-args p bindings))
   (define opts (mj-plan-options p))
   (define steps (mj-plan-steps p))
@@ -211,7 +269,6 @@
     (error 'makejail
            "agent mode forbids (option network host) for mass production — use thin-vnet (Issue #3) or human --allow-host-net"))
   (when (and (eq? mode 'human) (plan-has-cmd? p) (not allow-cmd?))
-    ;; human still needs --allow-cmd to run cmd
     (error 'makejail "(cmd)/(human-cmd) requires --allow-cmd (human escape hatch)"))
   p)
 
@@ -220,6 +277,12 @@
     (plan-validate! p #:mode 'agent #:bindings b)
     #t))
 
+;; =============================================================================
+;; plan->effects — AST → 効果列（まだホストは触らない）
+;;   各効果は '(タグ 引数…) のリスト。executor が解釈する。
+;;   phase: build | start | stop | destroy
+;;   {{arg名}} は subst-str で --arg 束縛に置換
+;; =============================================================================
 (define (plan->effects p #:phase [phase 'build] #:bindings [bindings (makejail-arg-bindings)])
   (define args-h (resolve-args p bindings))
   (define name (mj-plan-name p))
@@ -251,6 +314,7 @@
      (for ([o opts] #:unless (memq (mj-option-key o) '(name dataset)))
        (case (mj-option-key o)
          [(nat) (push! 'net-nat name)]
+         ;; 偽の expose 成功は出さない（Issue #1）
          [(expose) (push! 'net-expose-UNIMPLEMENTED name (mj-option-val o))]
          [(virtualnet) (push! 'net-virtualnet-frozen name (mj-option-val o))]
          [(network)
@@ -297,6 +361,11 @@
     [else (error 'plan->effects "bad phase ~a" phase)])
   effects)
 
+;; -----------------------------------------------------------------------------
+;; モジュール言語の心臓: #%module-begin の置き換え
+;;   #lang makejail ファイルの全フォームを assemble-plan し current-plan を provide
+;;   REPL 用 #%top-interaction は mj-module-begin に流さない
+;; -----------------------------------------------------------------------------
 (define-syntax (mj-top-interaction stx)
   (syntax-parse stx
     [(_ . form) #'(#%expression (begin . form))]))
@@ -309,6 +378,8 @@
         (define current-plan (assemble-plan (list form ...)))
         (void))]))
 
+;; トップレベル値の列 → 1 つの mj-plan
+;;   二重 (from)、未知フォーム、from 欠落をここで拒否（平坦構文のみ）
 (define (assemble-plan forms)
   (define nm #f)
   (define args '())
