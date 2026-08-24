@@ -7,6 +7,7 @@ Racket LOP による FreeBSD Jail DSL（`#lang makejail`）のドキュメント
 | [Overview](Overview) | LOP の全体像・言語定義・AST・設計パターン（DeepSeek 記述） |
 | [使い方](使い方) | 構文一覧・CLI・注意点（DeepSeek 記述） |
 | [lop-and-macros](lop-and-macros) | LOP とマクロ／class — 言語側の道具（DeepSeek 記述） |
+| [dsl-testing](dsl-testing) | DSL テスト四層（構文・静的・動的・拒否）（DeepSeek 記述） |
 | [beautiful-racket-stacker](beautiful-racket-stacker) | Beautiful Racket と stacker 入門（DeepSeek 記述） |
 | [lang-br-toolbox](lang-br-toolbox) | `#lang br` ティーチング用ツールボックス（DeepSeek 記述） |
 | [stack-calc](stack-calc) | `#lang` スタック計算機ミニ言語（artifacts、DeepSeek 記述） |
@@ -16,6 +17,7 @@ Racket LOP による FreeBSD Jail DSL（`#lang makejail`）のドキュメント
 
 - リポジトリ: https://github.com/bluehive/my-makejail-lop  
 - 設計レビュー: https://github.com/bluehive/my-makejail-lop/issues/1  
-- thin-vnet 仕様: https://github.com/bluehive/my-makejail-lop/issues/3  
+- thin-vnet: https://github.com/bluehive/my-makejail-lop/issues/3  
 - P02: https://github.com/bluehive/my-makejail-lop/issues/4  
+- 構造化・同型: https://github.com/bluehive/my-makejail-lop/issues/8  
 - ライセンス: **BSD-2-Clause**  
