@@ -69,7 +69,7 @@ peek
 実装の算術は Racket の `+` をそのまま export せず、`r+` に退避しています。
 
 ```racket
-(define-stack-word + (apply-binop '+ r+))
+(define-stack-word + (apply-binop r+))
 ```
 
 ここが [lop-and-macros](lop-and-macros) の「**マクロはコンパイラに語彙を足す**」と同じ層です。計算そのものは実行時のリスト `the-stack` です。
