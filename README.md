@@ -8,7 +8,7 @@
 | ライセンス | BSD-2-Clause |
 | 設計レビュー | [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1) · [Issue #4 P02](https://github.com/bluehive/my-makejail-lop/issues/4) |
 | エージェント契約 | [`docs/P02-agent-contract.md`](docs/P02-agent-contract.md) |
-| **Wiki** | [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) · [lop-and-macros](https://github.com/bluehive/my-makejail-lop/wiki/lop-and-macros) · [beautiful-racket-stacker](https://github.com/bluehive/my-makejail-lop/wiki/beautiful-racket-stacker) · [stack-calc](https://github.com/bluehive/my-makejail-lop/wiki/stack-calc) · [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) · [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) · [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
+| **Wiki** | [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) · [lop-and-macros](https://github.com/bluehive/my-makejail-lop/wiki/lop-and-macros) · [beautiful-racket-stacker](https://github.com/bluehive/my-makejail-lop/wiki/beautiful-racket-stacker) · [lang-br-toolbox](https://github.com/bluehive/my-makejail-lop/wiki/lang-br-toolbox) · [stack-calc](https://github.com/bluehive/my-makejail-lop/wiki/stack-calc) · [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) · [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) · [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
 | Wiki ソース | リポジトリ内 [`docs/wiki/`](docs/wiki/)（記述: DeepSeek、ライセンス BSD-2-Clause） |
 
 > **0.2 方針 (Issue #1 pivot)**  
@@ -27,6 +27,7 @@ LOP の読み方と CLI は Wiki に分けてあります（本文は DeepSeek �
 | [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) | 同一 Jail Caddy+DokuWiki / Samba・FreeBSD 15 注意 |
 | [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) | Flatt/ACM Queue「Racket における言語作成」整理 |
 | [beautiful-racket-stacker](https://github.com/bluehive/my-makejail-lop/wiki/beautiful-racket-stacker) | Beautiful Racket と stacker 入門 |
+| [lang-br-toolbox](https://github.com/bluehive/my-makejail-lop/wiki/lang-br-toolbox) | `#lang br` ティーチング用ツールボックス |
 | [lop-and-macros](https://github.com/bluehive/my-makejail-lop/wiki/lop-and-macros) | LOP とマクロ／class |
 | [stack-calc](https://github.com/bluehive/my-makejail-lop/wiki/stack-calc) | `#lang` スタック計算機（artifacts） |
 | リポジトリミラー | [`docs/wiki/`](docs/wiki/) |

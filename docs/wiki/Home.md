@@ -8,6 +8,7 @@ Racket LOP による FreeBSD Jail DSL（`#lang makejail`）のドキュメント
 | [使い方](使い方) | 構文一覧・CLI・注意点（DeepSeek 記述） |
 | [lop-and-macros](lop-and-macros) | LOP とマクロ／class — 言語側の道具（DeepSeek 記述） |
 | [beautiful-racket-stacker](beautiful-racket-stacker) | Beautiful Racket と stacker 入門（DeepSeek 記述） |
+| [lang-br-toolbox](lang-br-toolbox) | `#lang br` ティーチング用ツールボックス（DeepSeek 記述） |
 | [stack-calc](stack-calc) | `#lang` スタック計算機ミニ言語（artifacts、DeepSeek 記述） |
 | [bsd-appsと比較](bsd-appsと比較) | bsd-apps との比較レクチャー（DeepSeek 記述） |
 | [examples-freebsd15](examples-freebsd15) | 同一 Jail Caddy+DokuWiki / Samba・FreeBSD 15（DeepSeek 記述） |
