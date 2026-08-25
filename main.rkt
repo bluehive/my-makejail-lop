@@ -10,13 +10,13 @@
 ;;     → plan->effects（効果のリスト）
 ;;     → runtime/executor.rkt（dry-run 表示 or FreeBSD 上で実行）
 ;;
-;; 【設計の要点】
-;;   - 平坦構文のみ（旧 jail-spec は受理しない）… Issue #1 / #4
-;;   - agent モード既定: (cmd) と network host を禁止（量産の衝突・脱出路）
-;;   - ロールバック無しは「実行方針」であり、このファイルのマクロの意味ではない
+;; 【設計の要点 0.4 / Issue #9 承認済】
+;;   - 三軸: 個体(instance/arg) / 種族(wiki-site+family/*) / 運用(受理)
+;;   - 展開は言語側（sed・二重 hostname 禁止）。host/in-jail 表面セクションは設けない
+;;   - agent 既定: cmd と network host を禁止
+;;   - ロールバック無しは実行方針（マクロの意味ではない）
 ;;
-;; 【参考 Wiki】
-;;   lop-and-macros / creating-languages-in-racket / P02-agent-contract
+;; 【参考】Wiki three-axes-isomorphism / dsl-testing / P02 / Issue #9
 ;; =============================================================================
 
 (require (for-syntax racket/base syntax/parse)
@@ -40,7 +40,8 @@
  thin zfs snap host
  ;; 表面語彙
  arg from option pkg copy sysrc service cmd human-cmd workdir volume mount
- name wiki-site
+ name wiki-site instance
+ (struct-out mj-instance)
  pw-group pw-user smb-password template-subst
  ;; AST と API（raco / テスト / executor が require）
  (struct-out mj-plan)
@@ -55,7 +56,8 @@
  makejail-mode
  makejail-arg-bindings
  resolve-args
- agent-plan-ok?)
+ agent-plan-ok?
+ normalize-plan)
 
 ;; -----------------------------------------------------------------------------
 ;; AST（#:prefab … モジュール境界を越えて read/write・比較しやすい構造体）
@@ -66,6 +68,8 @@
 (struct mj-option (key val) #:prefab)      ; name, dataset, network など
 (struct mj-step (op args) #:prefab)        ; pkg / copy / wiki-site など1ステップ
 (struct mj-plan (name args from options steps) #:prefab) ; ファイル全体の計画
+;; 個体スロット（表面）。assemble で name/arg/option に正規化される
+(struct mj-instance (name hostname data-host ip dataset) #:prefab)
 
 ;; 実行モード: 'agent（既定・厳しい）| 'human（--allow-cmd 等が要る）
 (define makejail-mode (make-parameter 'agent))
@@ -169,25 +173,40 @@
 (define (volume h j) (mj-step 'volume (list (~a h) (~a j))))
 (define (mount h j #:readonly? [ro? #f]) (mj-step 'mount (list (~a h) (~a j) ro?)))
 
-;; ドメイン語彙: 同一 jail 内 Caddy+DokuWiki（sed/cmd なし）
-;; 1 ステップに畳み、flatten-steps で pkg/copy/volume/… に展開する
-(define (wiki-site #:hostname hostname
-                   #:data-host data-host
+;; 個体フォーム（三軸の「個体」）。必須にしたいスロットはここに集約可
+(define (instance #:name [nm #f]
+                  #:hostname [hostname #f]
+                  #:data-host [data-host #f]
+                  #:ip [ip #f]
+                  #:dataset [dataset #f])
+  (mj-instance (and nm (~a nm))
+               (and hostname (~a hostname))
+               (and data-host (~a data-host))
+               (and ip (~a ip))
+               (and dataset (~a dataset))))
+
+;; 種族フォーム wiki-site。hostname/data-host 省略時は {{hostname}}/{{data-host}}
+;; （instance または --arg が単一ソース）。利用側 sed は禁止。
+(define (wiki-site #:hostname [hostname #f]
+                   #:data-host [data-host #f]
                    #:root [root "/usr/local/share/dokuwiki"]
                    #:caddyfile-src [caddy-src "files/Caddyfile"]
                    #:local-php-src [php-src "files/dokuwiki.local.php"]
-                   #:php-pkgs [php-pkgs
-                               '("php84" "php84-fpm" "php84-gd" "php84-xml" "php84-ctype"
-                                 "php84-zlib" "php84-curl" "php84-session" "php84-mbstring"
-                                 "php84-iconv" "php84-tokenizer")]
+                   #:php-pkgs [php-pkgs #f]
                    #:forbid-install? [forbid #t])
+  (define hn (or hostname "{{hostname}}"))
+  (define dh (or data-host "{{data-host}}"))
+  (define pkgs (or php-pkgs
+                   '("php84" "php84-fpm" "php84-gd" "php84-xml" "php84-ctype"
+                     "php84-zlib" "php84-curl" "php84-session" "php84-mbstring"
+                     "php84-iconv" "php84-tokenizer")))
   (mj-step 'wiki-site
-           (list (~a hostname)
-                 (~a data-host)
+           (list (~a hn)
+                 (~a dh)
                  (~a root)
                  (~a caddy-src)
                  (~a php-src)
-                 (map ~a php-pkgs)
+                 (map ~a pkgs)
                  forbid)))
 
 ;; -----------------------------------------------------------------------------
@@ -221,23 +240,11 @@
   (for/or ([s (mj-plan-steps plan)])
     (and (mj-step? s) (memq (mj-step-op s) '(cmd human-cmd exec)))))
 
-;; wiki-site → 具体ステップ列（マクロではなく実行時展開でも「計画の一部」）
+;; 種族展開は family/dokuwiki.rkt（1 モジュール）— 循環回避で dynamic-require
 (define (expand-wiki-site-step step)
-  (match-define (mj-step 'wiki-site (list hn data root caddy-src php-src php-pkgs forbid)) step)
-  (append
-   (list (mj-step 'pkg (cons "caddy" (cons "dokuwiki" php-pkgs)))
-         (mj-step 'copy (list caddy-src "/usr/local/www/Caddyfile"))
-         (mj-step 'copy (list php-src (string-append root "/conf/local.php")))
-         (mj-step 'template-subst (list "/usr/local/www/Caddyfile" "{{HOSTNAME}}" hn))
-         (mj-step 'volume (list data (string-append root "/data")))
-         (mj-step 'sysrc (list "php_fpm_enable" "YES"))
-         (mj-step 'sysrc (list "caddy_enable" "YES"))
-         (mj-step 'sysrc (list "caddy_config" "/usr/local/www/Caddyfile"))
-         (mj-step 'service (list "php-fpm" 'start))
-         (mj-step 'service (list "caddy" 'start)))
-   (if forbid
-       (list (mj-step 'wiki-harden (list root)))
-       '())))
+  (define expand
+    (dynamic-require 'makejail/family/dokuwiki 'expand-wiki-site-step))
+  (expand step))
 
 (define (flatten-steps steps)
   (append*
@@ -245,6 +252,37 @@
      (match s
        [(mj-step 'wiki-site _) (expand-wiki-site-step s)]
        [else (list s)]))))
+
+;; instance → name / arg デフォルト / dataset / ip。dataset 未指定なら name から導出
+(define (normalize-plan p)
+  (define nm (mj-plan-name p))
+  (define args (mj-plan-args p))
+  (define opts (mj-plan-options p))
+  (define steps (mj-plan-steps p))
+  (define fr (mj-plan-from p))
+  ;; dataset 導出（単一ソース: name）
+  (define has-ds?
+    (for/or ([o opts]) (eq? (mj-option-key o) 'dataset)))
+  (define opts2
+    (if (or has-ds? (equal? nm "jail0") (equal? nm "empty"))
+        opts
+        (append opts (list (mj-option 'dataset (format "zroot/jails/~a" nm))))))
+  (mj-plan nm args fr opts2 steps))
+
+;; 二重 hostname: wiki-site にリテラルがあり arg/instance の hostname と矛盾したらエラー
+(define (check-hostname-single-source! p bindings)
+  (define args-h (resolve-args p bindings))
+  (define slot (hash-ref args-h 'hostname #f))
+  (for ([s (mj-plan-steps p)])
+    (when (and (mj-step? s) (eq? (mj-step-op s) 'wiki-site))
+      (define hn (car (mj-step-args s)))
+      (when (and (string? hn)
+                 (not (string-contains? hn "{{"))
+                 slot
+                 (not (equal? (~a slot) hn)))
+        (error 'makejail
+               "hostname single-source violated: instance/arg=~a but wiki-site=~a (use one slot; expansion is language-side)"
+               slot hn)))))
 
 ;; -----------------------------------------------------------------------------
 ;; 言語規則の実行時ゲート（agent/human）
@@ -258,8 +296,9 @@
   (unless (mj-plan? p) (error 'makejail "not a plan"))
   (unless (mj-from? (mj-plan-from p))
     (error 'makejail "missing (from thin|zfs ...)"))
-  ;; 必須 arg
+  ;; 必須 arg + hostname 単一ソース
   (void (resolve-args p bindings))
+  (check-hostname-single-source! p bindings)
   (define opts (mj-plan-options p))
   (define steps (mj-plan-steps p))
   (when (and (eq? mode 'agent) (plan-has-cmd? p) (not allow-cmd?))
@@ -387,9 +426,23 @@
   (define opts '())
   (define steps '())
   (define seen? #f)
+  (define (add-arg-default! key val)
+    (when val
+      (set! args (append args (list (mj-arg key #t val))))))
   (for ([f forms])
     (cond
       [(or (void? f) (number? f) (eof-object? f) (not f)) (void)]
+      [(mj-instance? f)
+       (set! seen? #t)
+       (when (mj-instance-name f)
+         (set! nm (mj-instance-name f))
+         (set! opts (append opts (list (mj-option 'name nm)))))
+       (add-arg-default! 'hostname (mj-instance-hostname f))
+       (add-arg-default! 'data-host (mj-instance-data-host f))
+       (when (mj-instance-ip f)
+         (set! opts (append opts (list (mj-option 'ip (mj-instance-ip f))))))
+       (when (mj-instance-dataset f)
+         (set! opts (append opts (list (mj-option 'dataset (mj-instance-dataset f))))))]
       [(mj-arg? f) (set! seen? #t) (set! args (append args (list f)))]
       [(mj-from? f)
        (set! seen? #t)
@@ -406,4 +459,4 @@
     (set! nm "empty"))
   (when (and seen? (not fr))
     (error 'makejail "missing (from thin|zfs ...) — required exactly once"))
-  (mj-plan (or nm "jail0") args fr opts steps))
+  (normalize-plan (mj-plan (or nm "jail0") args fr opts steps)))

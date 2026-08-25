@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |------|------|
 | リポジトリ | https://github.com/bluehive/my-makejail-lop |
-| バージョン | **0.3.0** (P02 agent-safe DSL · Issue #4) |
+| バージョン | **0.4.0** (three-axes · Issue #9 approved) |
 | コレクション | `makejail`（`#lang makejail`） |
 | ライセンス | BSD-2-Clause |
 | 設計レビュー | [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1) · [Issue #4 P02](https://github.com/bluehive/my-makejail-lop/issues/4) |
