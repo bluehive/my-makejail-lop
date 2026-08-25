@@ -32,7 +32,7 @@ raco makejail plan examples/dokuwiki-caddy.rkt --human --allow-cmd --allow-host-
 
 ## 語彙（エージェント向け）
 
-`name`, `from`, `option dataset`, `arg`（必須可）, `pkg`, `volume`, `sysrc`, `service`, `copy`, **`wiki-site`**, `mount`, **`pw-group`**, **`pw-user`**, **`smb-password`**, **`template-subst`**  
+**`instance`**, `name`, `from`, `option dataset`, `arg`（必須可）, `pkg`, `volume`, `sysrc`, `service`, `copy`, **`wiki-site`**, `mount`, **`pw-group`**, **`pw-user`**, **`smb-password`**, **`template-subst`**  
 **禁止:** `cmd`, `human-cmd`, `exec:run`, `jail-spec`（旧構文）
 
 ## ロードマップ対応

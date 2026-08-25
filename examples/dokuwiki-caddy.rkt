@@ -1,16 +1,18 @@
 #lang makejail
 
-;; Caddy + DokuWiki (same jail) — no (cmd)/sed.
-;; FreeBSD 15 / php84. Use --arg for hostname and data path.
+;; 0.4: 個体スロット + 種族フォーム（展開は言語側 / family/dokuwiki）
+;; host/in-jail セクションは設けない（Issue #9）
 
-(name "dokuwiki-caddy")
 (from zfs "zroot/jails/base@clean")
-(option dataset "zroot/jails/dokuwiki-caddy")
 (option network vnet-default)
 
+(instance
+ #:name "dokuwiki-caddy"
+ #:hostname "{{hostname}}"
+ #:data-host "{{data-host}}")
+
+;; dataset は name から導出（二重指定しない）
 (arg hostname)
 (arg data-host)
 
-(wiki-site #:hostname "{{hostname}}"
-           #:data-host "{{data-host}}"
-           #:forbid-install? #t)
+(wiki-site)   ; hostname/data-host はスロットから
