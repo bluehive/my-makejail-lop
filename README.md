@@ -8,7 +8,8 @@
 | ライセンス | BSD-2-Clause |
 | 設計レビュー | [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1) · [Issue #4 P02](https://github.com/bluehive/my-makejail-lop/issues/4) |
 | エージェント契約 | [`docs/P02-agent-contract.md`](docs/P02-agent-contract.md) |
-| **Wiki** | [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) · [lop-and-macros](https://github.com/bluehive/my-makejail-lop/wiki/lop-and-macros) · [dsl-testing](https://github.com/bluehive/my-makejail-lop/wiki/dsl-testing) · [beautiful-racket-stacker](https://github.com/bluehive/my-makejail-lop/wiki/beautiful-racket-stacker) · [lang-br-toolbox](https://github.com/bluehive/my-makejail-lop/wiki/lang-br-toolbox) · [stack-calc](https://github.com/bluehive/my-makejail-lop/wiki/stack-calc) · [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) · [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) · [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
+| **Wiki** | [three-axes-isomorphism](https://github.com/bluehive/my-makejail-lop/wiki/three-axes-isomorphism)（**0.4 仕様**） · [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) · [dsl-testing](https://github.com/bluehive/my-makejail-lop/wiki/dsl-testing) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
+| 仕様 | [Issue #9 承認待ち](https://github.com/bluehive/my-makejail-lop/issues/9) |
 | Wiki ソース | リポジトリ内 [`docs/wiki/`](docs/wiki/)（記述: DeepSeek、ライセンス BSD-2-Clause） |
 
 > **0.2 方針 (Issue #1 pivot)**  
@@ -28,7 +29,8 @@ LOP の読み方と CLI は Wiki に分けてあります（本文は DeepSeek �
 | [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) | Flatt/ACM Queue「Racket における言語作成」整理 |
 | [beautiful-racket-stacker](https://github.com/bluehive/my-makejail-lop/wiki/beautiful-racket-stacker) | Beautiful Racket と stacker 入門 |
 | [lang-br-toolbox](https://github.com/bluehive/my-makejail-lop/wiki/lang-br-toolbox) | `#lang br` ティーチング用ツールボックス |
-| [dsl-testing](https://github.com/bluehive/my-makejail-lop/wiki/dsl-testing) | DSL テスト四層（構文・静的・動的・拒否）・同型 ρ |
+| [dsl-testing](https://github.com/bluehive/my-makejail-lop/wiki/dsl-testing) | DSL テスト四層・同型 ρ |
+| [three-axes-isomorphism](https://github.com/bluehive/my-makejail-lop/wiki/three-axes-isomorphism) | **0.4** 三軸・言語内展開・host/in-jail 非採用 |
 | [lop-and-macros](https://github.com/bluehive/my-makejail-lop/wiki/lop-and-macros) | LOP とマクロ／class |
 | [stack-calc](https://github.com/bluehive/my-makejail-lop/wiki/stack-calc) | `#lang` スタック計算機（artifacts） |
 | リポジトリミラー | [`docs/wiki/`](docs/wiki/) |

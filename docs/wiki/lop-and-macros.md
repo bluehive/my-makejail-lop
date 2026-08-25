@@ -324,3 +324,11 @@ Matthew Flatt の説明では、言語を育てる段がだいたい次の順で
 - [beautiful-racket-stacker](beautiful-racket-stacker)
 
 - [dsl-testing](dsl-testing) — DSL テスト四層
+
+---
+
+## 0.4 追記（Issue #9）
+
+makejail の変更軸は **個体・種族・運用** に固定する（[three-axes-isomorphism](three-axes-isomorphism)）。  
+展開は言語側。**`(host)/(in-jail)` は DSL 表面のルールにしない**（jail 個体計画であることが自明の前提）。  
+マクロで閉じる対象は、まず **運用の禁止（cmd、host ネット量産）** と **必須個体スロット**、種族の単一入口である。

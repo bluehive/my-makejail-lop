@@ -2,7 +2,7 @@
 
 > 記述: DeepSeek  
 > ライセンス: BSD-2-Clause  
-> 関連: [lop-and-macros](lop-and-macros) · [Issue #8 同型](https://github.com/bluehive/my-makejail-lop/issues/8) · [stack-calc](stack-calc) · [P02](https://github.com/bluehive/my-makejail-lop/blob/main/docs/P02-agent-contract.md)
+> 関連: [lop-and-macros](lop-and-macros) · [three-axes-isomorphism](three-axes-isomorphism) · [Issue #9](https://github.com/bluehive/my-makejail-lop/issues/9) · [Issue #8](https://github.com/bluehive/my-makejail-lop/issues/8)（アーカイブ） · [stack-calc](stack-calc) · [P02](https://github.com/bluehive/my-makejail-lop/blob/main/docs/P02-agent-contract.md)
 
 DSL のテストは「ライブラリーの単体」ではなく、**構文・展開（静的意味）・意味・拒否**の四層で見ます。  
 Racket `#lang` 側の定石を、makejail / stack-calc に寄せて整理します。
@@ -235,6 +235,11 @@ Gherkin（`#lang feature`）を先に置く必要はない。Given/When/Then は
 Turnstile が `check-type` を言語の隣に置いたのも同じ発想である。
 
 ---
+
+## 三軸と前提（0.4）
+
+同型の軸は **個体 / 種族 / 運用** である（[three-axes-isomorphism](three-axes-isomorphism)）。  
+`(host)/(in-jail)` を必須構文としてはテストしない（設けない方針）。内部効果の scope 表示は任意。
 
 ## 同型をテストする
 

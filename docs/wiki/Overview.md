@@ -6,6 +6,10 @@
 
 このリポジトリは **Racket の LOP（Language-Oriented Programming）** を使って、FreeBSD の Jail 設定を **`#lang makejail` という独自の言語** として実装したプロトタイプです。[Beautiful Racket](https://beautifulracket.com/introduction.html) の「ドメインを安く言語化する」という考え方の実験台になっています。
 
+> **設計（0.4 草案・[Issue #9](https://github.com/bluehive/my-makejail-lop/issues/9)）**  
+> 変更軸は **個体 / 種族 / 運用**（[three-axes-isomorphism](three-axes-isomorphism)）。展開は言語側。`(host)/(in-jail)` セクションは設けない（jail 個体計画が自明の前提）。  
+> 下記の平坦例は **0.3 実装**。量産の理想形は個体スロット + 種族フォーム。
+
 ここでは、このコードから読み取れる **「Racket で LOP をどう実践しているか」** を中心に説明します。
 
 ---
@@ -20,7 +24,7 @@
 (name "web-nginx")
 (from zfs "zroot/jails/base@clean")
 (option dataset "zroot/jails/web-nginx")
-(option network host)
+(option network vnet-default)  ; agent 量産。host は運用で禁止
 
 (pkg "nginx")
 (sysrc "nginx_enable" "YES")
@@ -139,6 +143,8 @@ S 式ベースの言語として `makejail` を登録しています。これに
 
 ## 関連
 
+- [three-axes-isomorphism](three-axes-isomorphism) — 0.4 三軸・展開
+- [dsl-testing](dsl-testing)
 - [bsd-appsと比較](bsd-appsと比較)
 
 ## 関連
@@ -148,3 +154,9 @@ S 式ベースの言語として `makejail` を登録しています。これに
 - [creating-languages-in-racket](creating-languages-in-racket) — Flatt / ACM Queue
 
 - [lop-and-macros](lop-and-macros) — LOP とマクロ／class
+
+## 関連
+
+- [three-axes-isomorphism](three-axes-isomorphism)
+- [dsl-testing](dsl-testing)
+- [使い方](使い方)

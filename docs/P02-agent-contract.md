@@ -1,5 +1,9 @@
 # P02 — エージェント契約（Issue #4）
 
+> **0.4 接続:** エージェントが触るのは **個体スロットの穴埋め + 種族フォーム**。運用は言語受理。  
+> 展開は言語側（sed 禁止）。host/in-jail セクションは不要（[Issue #9](https://github.com/bluehive/my-makejail-lop/issues/9) · Wiki three-axes-isomorphism）。
+
+
 ## 権限区分
 
 | 役割 | 許可 | 禁止 |
@@ -45,3 +49,11 @@ raco makejail plan examples/dokuwiki-caddy.rkt --human --allow-cmd --allow-host-
 | 4 テンプレ | `wiki-site` + `dokuwiki-caddy-agent.rkt` |
 | 5 host 禁止 | agent で禁止（thin-vnet 実装は #3） |
 | 6 穴埋めのみ | 本ドキュメント + check |
+
+## 0.4 三軸（承認後）
+
+| 軸 | エージェント |
+|----|----------------|
+| 個体 | `--arg` / スロットのみ変更 |
+| 種族 | テンプレの `wiki-site` 等を変えず使う（種族メンテは別） |
+| 運用 | 書けない（cmd・host ネット量産は受理外へ） |
