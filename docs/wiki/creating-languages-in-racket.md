@@ -236,3 +236,5 @@ Racket は単なる言語ではなく、**問題に合う言語を作るツー�
 - [bsd-appsと比較](bsd-appsと比較)  
 - [Beautiful Racket: Introduction](https://beautifulracket.com/introduction.html)  
 - ACM Queue / Matthew Flatt *Creating Languages in Racket*（原記事を検索）  
+
+- [lop-and-macros](lop-and-macros)

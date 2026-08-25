@@ -8,7 +8,8 @@
 | ライセンス | BSD-2-Clause |
 | 設計レビュー | [Issue #1](https://github.com/bluehive/my-makejail-lop/issues/1) · [Issue #4 P02](https://github.com/bluehive/my-makejail-lop/issues/4) |
 | エージェント契約 | [`docs/P02-agent-contract.md`](docs/P02-agent-contract.md) |
-| **Wiki** | [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) · [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) · [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) · [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
+| **Wiki** | [three-axes-isomorphism](https://github.com/bluehive/my-makejail-lop/wiki/three-axes-isomorphism) · [dsl-design-principles](https://github.com/bluehive/my-makejail-lop/wiki/dsl-design-principles) · [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [Home](https://github.com/bluehive/my-makejail-lop/wiki) |
+| 仕様 | [Issue #9 承認済](https://github.com/bluehive/my-makejail-lop/issues/9) · [`docs/SPEC-0.4.md`](docs/SPEC-0.4.md) |
 | Wiki ソース | リポジトリ内 [`docs/wiki/`](docs/wiki/)（記述: DeepSeek、ライセンス BSD-2-Clause） |
 
 > **0.2 方針 (Issue #1 pivot)**  
@@ -22,10 +23,10 @@ LOP の読み方と CLI は Wiki に分けてあります（本文は DeepSeek �
 | ページ | 内容 |
 |--------|------|
 | [Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) | `#lang makejail` と LOP（構文→AST→効果→実行） |
-| [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) | 構文表・`raco makejail`・MVP 注意 |
-| [bsd-appsと比較](https://github.com/bluehive/my-makejail-lop/wiki/bsd-apps%E3%81%A8%E6%AF%94%E8%BC%83) | bsd-apps 比較・ハイブリッド |
-| [examples-freebsd15](https://github.com/bluehive/my-makejail-lop/wiki/examples-freebsd15) | 同一 Jail Caddy+DokuWiki / Samba・FreeBSD 15 注意 |
-| [creating-languages-in-racket](https://github.com/bluehive/my-makejail-lop/wiki/creating-languages-in-racket) | Flatt/ACM Queue「Racket における言語作成」整理 |
+| [three-axes-isomorphism](https://github.com/bluehive/my-makejail-lop/wiki/three-axes-isomorphism) | 0.4 三軸・言語内展開・host/in-jail 非採用 |
+| [dsl-design-principles](https://github.com/bluehive/my-makejail-lop/wiki/dsl-design-principles) | LOP DSL 設計の 5 原則（#8 抽出） |
+| [dsl-testing](https://github.com/bluehive/my-makejail-lop/wiki/dsl-testing) | DSL テスト四層・同型 ρ |
+| [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9) | 構文表・`raco makejail` |
 | リポジトリミラー | [`docs/wiki/`](docs/wiki/) |
 
 Wiki 未作成の場合は GitHub 上で一度 Wiki を有効化／最初のページ作成後、`scripts/publish-wiki.sh` で `docs/wiki` を同期できます。
