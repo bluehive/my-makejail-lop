@@ -1,13 +1,11 @@
 #lang makejail
 
-;; Grok-style surface (MVP). Default path: dry-run on any host.
-;; Real apply: FreeBSD + --apply (zfs from recommended until thin is done).
+;; nginx — 0.4 個体 + 手順語彙（種族フォームなし）
 
-(name "web-nginx")
 (from zfs "zroot/jails/base@clean")
-(option dataset "zroot/jails/web-nginx")
-(option network host)
-;; virtualnet / nat / expose are accepted but frozen/TODO in executor (Issue #1)
+(option network vnet-default)
+
+(instance #:name "web-nginx")
 
 (pkg "nginx")
 (sysrc "nginx_enable" "YES")

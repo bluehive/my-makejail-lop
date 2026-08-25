@@ -1,44 +1,54 @@
 # 同一 Jail 内 Caddy + DokuWiki / Samba 例（FreeBSD 15）
 
-> 記述: DeepSeek + P02 更新（**cmd 除去**）  
+> 記述: DeepSeek  
 > ライセンス: BSD-2-Clause  
-> 前提: FreeBSD 15 / `php84-*` / `samba420`  
-> 量産ネット: [Issue #3](https://github.com/bluehive/my-makejail-lop/issues/3) · エージェント契約: [P02](https://github.com/bluehive/my-makejail-lop/blob/main/docs/P02-agent-contract.md)
+> 前提: FreeBSD 15 / `php84-*` / `samba420`（無ければ `pkg search` で読み替え）  
+> 設計: [three-axes-isomorphism](three-axes-isomorphism) · [使い方](使い方)  
+> ネット: [Issue #3 thin-vnet](https://github.com/bluehive/my-makejail-lop/issues/3) · 契約: [P02](https://github.com/bluehive/my-makejail-lop/blob/main/docs/P02-agent-contract.md)
 
-**重要 (Issue #4 / P02):** 例から `(cmd …)` を廃止。  
-- Wiki: `(wiki-site …)` = **種族**。hostname/data-host = **個体**スロット。展開は言語側（sed なし）  
-- Samba: `(pw-group)` `(pw-user)` `(smb-password)` + `(arg …)`  
-- **0.4:** [three-axes-isomorphism](three-axes-isomorphism) — host/in-jail セクションは設けない（jail 個体計画が前提）  
-- 理想の個体ファイルは「スロット + 種族フォーム」のみ（下記は 0.3 実装形）
+**書き方の要点**
 
+- **個体:** `(instance …)` + `(arg …)`  
+- **種族:** `(wiki-site)` — pkg/sed は書かない  
+- **運用:** agent 既定（cmd なし、`network host` なし）  
+- dataset は name から導出  
 
 ---
 
 ## 1. Caddy + DokuWiki（同一 Jail）
 
-ファイル: `examples/dokuwiki-caddy.rkt`（agent 版と同形）
+ファイル: `examples/dokuwiki-caddy.rkt`
 
 ```racket
 #lang makejail
 
-(name "dokuwiki-caddy")
 (from zfs "zroot/jails/base@clean")
-(option dataset "zroot/jails/dokuwiki-caddy")
 (option network vnet-default)
+
+(instance
+ #:name "dokuwiki-caddy"
+ #:hostname "{{hostname}}"
+ #:data-host "{{data-host}}")
 
 (arg hostname)
 (arg data-host)
 
-(wiki-site #:hostname "{{hostname}}"
-           #:data-host "{{data-host}}"
-           #:forbid-install? #t)
+(wiki-site)
 ```
 
 ```bash
+sudo mkdir -p /zroot/dokuwiki-data
+
 raco makejail check examples/dokuwiki-caddy.rkt \
   --arg hostname=wiki.example.com \
   --arg data-host=/zroot/dokuwiki-data
+
+raco makejail build examples/dokuwiki-caddy.rkt --dry-run \
+  --arg hostname=wiki.example.com \
+  --arg data-host=/zroot/dokuwiki-data
 ```
+
+言語が展開する内容（利用者が並べない）: caddy/dokuwiki/php84 系 pkg、Caddyfile の `{{HOSTNAME}}` 置換、volume、sysrc、service、wiki-harden。展開表は `family/dokuwiki.rkt`。
 
 ---
 
@@ -49,10 +59,10 @@ raco makejail check examples/dokuwiki-caddy.rkt \
 ```racket
 #lang makejail
 
-(name "samba-fileserver")
 (from zfs "zroot/jails/base@clean")
-(option dataset "zroot/jails/samba-fileserver")
 (option network vnet-default)
+
+(instance #:name "samba-fileserver")
 
 (arg samba-password)
 (arg share-host "/zroot/samba-share")
@@ -75,6 +85,7 @@ raco makejail check examples/dokuwiki-caddy.rkt \
 ```
 
 ```bash
+sudo mkdir -p /zroot/samba-share
 raco makejail check examples/samba.rkt \
   --arg samba-password='…' \
   --arg share-host=/zroot/samba-share
@@ -94,39 +105,55 @@ raco makejail check examples/samba.rkt \
 }
 ```
 
-`wiki-site` が `{{HOSTNAME}}` を `template-subst` で置換（**sed/cmd なし**）。
-
 ### dokuwiki.local.php / smb4.conf
 
 リポジトリ `files/` を参照。
 
 ---
 
-## 4. 実行手順
+## 4. ディレクトリ
 
-```sh
-sudo mkdir -p /zroot/dokuwiki-data /zroot/samba-share
-raco pkg install --link .
-raco makejail build examples/dokuwiki-caddy.rkt --dry-run \
-  --arg hostname=wiki.example.com --arg data-host=/zroot/dokuwiki-data
-# FreeBSD 上のみ:
-# raco makejail build examples/dokuwiki-caddy.rkt --apply --arg ...
+```
+my-makejail-lop/
+├── examples/
+│   ├── dokuwiki-caddy.rkt
+│   ├── dokuwiki-caddy-agent.rkt
+│   ├── samba.rkt
+│   └── nginx.rkt
+├── family/
+│   └── dokuwiki.rkt          # 種族展開表
+└── files/
+    ├── Caddyfile
+    ├── dokuwiki.local.php
+    └── smb4.conf
 ```
 
 ---
 
-## 5. 注意
+## 5. 停止・破棄
+
+```sh
+raco makejail stop examples/dokuwiki-caddy.rkt --apply \
+  --arg hostname=wiki.example.com --arg data-host=/zroot/dokuwiki-data
+raco makejail destroy examples/dokuwiki-caddy.rkt --apply \
+  --arg hostname=wiki.example.com --arg data-host=/zroot/dokuwiki-data
+```
+
+---
+
+## 6. 注意
 
 | 項目 | 内容 |
 |------|------|
-| pkg 版 | `php84` / `samba420` が無い場合は `pkg search` で読み替え |
-| ネットワーク | `vnet-default` は **プレースホルダ**（#3 未実装）。host は agent 禁止 |
-| パスワード | Samba は `--arg samba-password=` のみ（DSL に平文を書かない） |
-| ZFS | `base@clean` がホストに必要 |
+| pkg 版 | `php84` / `samba420` が無ければ読み替え |
+| ネット | `vnet-default` はプレースホルダ。host は agent 禁止 |
+| 秘密 | Samba パスワードは `--arg` のみ |
+| ZFS | `zroot/jails/base@clean` が必要 |
 
 ---
 
 ## 関連
 
-- [Overview](Overview) · [使い方](使い方) · [bsd-appsと比較](bsd-appsと比較)  
-- [Issue #4](https://github.com/bluehive/my-makejail-lop/issues/4)  
+- [Overview](Overview) · [使い方](使い方)  
+- [three-axes-isomorphism](three-axes-isomorphism)  
+- [dsl-design-principles](dsl-design-principles)  

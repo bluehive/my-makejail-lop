@@ -124,24 +124,21 @@ CERT_EMAIL="admin@example.com"
 sh caddy-install.sh
 ```
 
-**makejail スタイル（Caddy・理想形のスケッチ）**
+**makejail スタイル（0.4・種族＋個体）**
 
 ```racket
 #lang makejail
-(name "caddy")
 (from zfs "zroot/jails/base@clean")
-(option dataset "zroot/jails/caddy")
-(option network host)
-
-(arg host-name "web.example.com")
-(arg standalone-cert #t)
-(arg cert-email "admin@example.com")
-
-(pkg "git-lite" "go" "openssl")
-(copy "files/Caddyfile" "/usr/local/www/Caddyfile")
-(sysrc "caddy_enable" "YES")
-(service caddy start)
+(option network vnet-default)
+(instance #:name "dokuwiki-caddy"
+          #:hostname "{{hostname}}"
+          #:data-host "{{data-host}}")
+(arg hostname)
+(arg data-host)
+(wiki-site)
 ```
+
+（詳細は [examples-freebsd15](examples-freebsd15) · [使い方](使い方)）
 
 ※ xcaddy ビルドや証明書分岐は、現状 MVP では `(cmd ...)` や将来の専用構文が必要。
 
@@ -226,7 +223,10 @@ jail では **sysvipc / raw sockets** など追加プロパティが要る場合
 | CI / リモート | makejail | dry-run・SSH が土台にある |
 | 既存 sh の移行 | bsd-apps 風 or `(cmd …)` | 資産を捨てない |
 
-### 5.2 ハイブリッド
+### 5.2 ハイブリッド（参考・0.4 では常用しない）
+
+0.4 の本線は **種族フォーム＋言語内展開** です。`(cmd …)` で bsd-apps を呼ぶのは agent 不可・同型を壊すため、移行の一時手段に限ります。
+
 
 makejail の `(cmd ...)` で bsd-apps スクリプトを呼ぶ例:
 

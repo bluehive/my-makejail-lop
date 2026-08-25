@@ -33,48 +33,35 @@ Wiki 未作成の場合は GitHub 上で一度 Wiki を有効化／最初のペ�
 
 ## 何が言語か
 
-jail にアプリを入れる作業を `#lang makejail` のトップレベル構文にします（require して手続きを並べるライブラリ API が表向きではありません）。
+jail にアプリを入れる作業を `#lang makejail` のトップレベル構文にします。
+
+**0.4 の書き方（個体 + 種族）:**
 
 ```racket
 #lang makejail
 
-(name "web-nginx")
 (from zfs "zroot/jails/base@clean")
-(option dataset "zroot/jails/web-nginx")
-(option network host)
+(option network vnet-default)
 
-(pkg "nginx")
-(sysrc "nginx_enable" "YES")
-(copy "templates/nginx.conf" "/usr/local/etc/nginx/nginx.conf")
-(service nginx start)
+(instance
+ #:name "dokuwiki-caddy"
+ #:hostname "{{hostname}}"
+ #:data-host "{{data-host}}")
+
+(arg hostname)
+(arg data-host)
+
+(wiki-site)
 ```
 
-### 構文（MVP）
+```bash
+raco makejail check examples/dokuwiki-caddy.rkt \
+  --arg hostname=wiki.example.com \
+  --arg data-host=/zroot/dokuwiki-data
+```
 
-| 構文 | 意味 |
-|------|------|
-| `(name "…")` | jail 名 |
-| `(from thin freebsd-14.3)` | thin + release 名（作成は TODO） |
-| `(from zfs "pool/ds@snap")` | ZFS clone 元 |
-| `(option dataset "…")` | clone 先 dataset |
-| `(option network host)` | ホスト共有 net（既定寄り） |
-| `(option nat)` / `(option expose 80)` / `(option virtualnet …)` | **受理するが executor では TODO/凍結** |
-| `(arg password)` / `(arg x "default")` | 引数宣言（効果列に出る・未バインド検査は今後） |
-| `(pkg …)` `(sysrc k v)` `(service name [start])` | アプリ投入 |
-| `(copy src dst)` | ホストファイルを jail へ（build 時に中身をバンドル） |
-| `(volume host jail-path)` / `(mount … #:readonly? #t)` | 永続・nullfs |
-| `(pw-group)` `(pw-user)` `(smb-password)` | OS/Samba ユーザー（agent 可） |
-| `(template-subst path old new)` | 設定プレースホルダ置換 |
-| `(cmd …)` | **人間のみ** `--allow-cmd`（agent 禁止） |
-| `(workdir …)` | 作業ディレクトリ |
+詳細は [Wiki Overview](https://github.com/bluehive/my-makejail-lop/wiki/Overview) · [使い方](https://github.com/bluehive/my-makejail-lop/wiki/%E4%BD%BF%E3%81%84%E6%96%B9)。
 
-### 段階（phase）
-
-| phase | 内容 |
-|-------|------|
-| `build` | 作成 + パッケージ等（既定） |
-| `start` / `stop` | 寿命操作 |
-| `destroy` | 停止 + zfs destroy 等 |
 
 ## CLI
 
