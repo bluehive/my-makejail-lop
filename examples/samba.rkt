@@ -1,12 +1,11 @@
 #lang makejail
 
-;; Samba file server — no (cmd). Issue #4 / PR comment.
-;; FreeBSD 15 / samba420. Prefer thin-vnet in production (Issue #3).
+;; Samba — 0.4 instance + domain forms (no cmd)
 
-(name "samba-fileserver")
 (from zfs "zroot/jails/base@clean")
-(option dataset "zroot/jails/samba-fileserver")
 (option network vnet-default)
+
+(instance #:name "samba-fileserver")
 
 (arg samba-password)
 (arg share-host "/zroot/samba-share")
@@ -23,7 +22,6 @@
          #:shell "/usr/sbin/nologin"
          #:create-home? #t)
 
-;; password via --arg samba-password=... (not hardcoded)
 (smb-password "smbuser" "{{samba-password}}")
 
 (sysrc "samba_server_enable" "YES")

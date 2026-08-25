@@ -2,7 +2,7 @@
 
 > 記述: DeepSeek + Issue #8/#9 議論の整理  
 > ライセンス: BSD-2-Clause  
-> **正本（承認待ち）:** [Issue #9](https://github.com/bluehive/my-makejail-lop/issues/9)  
+> **正本:** [Issue #9](https://github.com/bluehive/my-makejail-lop/issues/9)  
 > 議論アーカイブ: [Issue #8](https://github.com/bluehive/my-makejail-lop/issues/8)（クローズ）  
 > 関連: [dsl-testing](dsl-testing) · [lop-and-macros](lop-and-macros) · [P02](https://github.com/bluehive/my-makejail-lop/blob/main/docs/P02-agent-contract.md)
 
@@ -134,7 +134,7 @@ hostname を変えて pkg 集合が動いたら、言語が同型を失ってい
 
 ## 関連
 
-- [Issue #9 仕様草案](https://github.com/bluehive/my-makejail-lop/issues/9)（**承認待ち**）  
+- [Issue #9 仕様草案](https://github.com/bluehive/my-makejail-lop/issues/9)（承認済）  
 - [Issue #8](https://github.com/bluehive/my-makejail-lop/issues/8)（議論・クローズ）  
 - [dsl-testing](dsl-testing) · [lop-and-macros](lop-and-macros) · [使い方](使い方) · [Overview](Overview)  
 
