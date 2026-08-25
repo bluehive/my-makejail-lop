@@ -5,9 +5,12 @@
 > 前提: FreeBSD 15 / `php84-*` / `samba420`  
 > 量産ネット: [Issue #3](https://github.com/bluehive/my-makejail-lop/issues/3) · エージェント契約: [P02](https://github.com/bluehive/my-makejail-lop/blob/main/docs/P02-agent-contract.md)
 
-**重要 (Issue #4 / PR #5):** 例から `(cmd …)` を廃止。  
-- Wiki: `(wiki-site …)` / `template-subst`  
-- Samba: `(pw-group)` `(pw-user)` `(smb-password)` + `(arg …)`
+**重要 (Issue #4 / P02):** 例から `(cmd …)` を廃止。  
+- Wiki: `(wiki-site …)` = **種族**。hostname/data-host = **個体**スロット。展開は言語側（sed なし）  
+- Samba: `(pw-group)` `(pw-user)` `(smb-password)` + `(arg …)`  
+- **0.4:** [three-axes-isomorphism](three-axes-isomorphism) — host/in-jail セクションは設けない（jail 個体計画が前提）  
+- 理想の個体ファイルは「スロット + 種族フォーム」のみ（下記は 0.3 実装形）
+
 
 ---
 
